@@ -14,8 +14,8 @@ private:
     bool needsDirectory( QString const & directory );
     void readSections();
     void readSection();
-    void readCases();
-    void readCase();
+    QStringList readCases();
+    QString readCase();
     void readCustom();
     void readAutomationType();
     void readStepsSeperated();

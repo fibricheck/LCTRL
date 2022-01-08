@@ -104,13 +104,14 @@ void TestRail::readSection()
     QString name;
     QString description;
     QString type;
+    QStringList testIds;
 //    QString origin;
 
     while( xml.readNextStartElement() )
     {
         if( xml.name() == QLatin1String( "name" ) )
         {
-            name = xml.readElementText();
+            name = xml.readElementText().trimmed().replace( '"', "\\\"" ).replace( '\n', "\\n" );
         }
         else if( xml.name() == QLatin1String( "description" ) )
         {
@@ -125,7 +126,7 @@ void TestRail::readSection()
                     {
                         id = generateId( 5 );
                     }
-                    description = description.mid(index+4).trimmed();
+                    description = idAndDescription.mid(index+4).trimmed().replace( '"', "\\\"" ).replace( '\n', "\\n" );
                     type = "user_need";
 //                    origin = "user_need";
                 }
@@ -136,7 +137,7 @@ void TestRail::readSection()
                     {
                         id = generateId( 5 );
                     }
-                    description = description.mid(index+4).trimmed();
+                    description = idAndDescription.mid(index+4).trimmed().trimmed().replace( '"', "\\\"" ).replace( '\n', "\\n" );
                     type = "requirement";
 //                    origin = "user_need";
                 }
@@ -147,7 +148,7 @@ void TestRail::readSection()
                     {
                         id = generateId( 5 );
                     }
-                    description = description.mid(index+4).trimmed();
+                    description = idAndDescription.mid(index+4).trimmed().trimmed().replace( '"', "\\\"" ).replace( '\n', "\\n" );
                     type = "specification";
 //                    origin = "user_need";
                 }
@@ -167,7 +168,7 @@ void TestRail::readSection()
         }
         else if( xml.name() == QLatin1String( "cases" ) )
         {
-            readCases();
+            testIds = readCases();
         }
         else
         {
@@ -186,28 +187,35 @@ void TestRail::readSection()
         else
         {
             qDebug() << "Creating" << json.fileName();
+            QString testIdsJson = "";
+            if( testIds.size() > 0 )
+            {
+                testIdsJson = QString( ",\n  \"testIds\": [\n    \"%1\"\n  ]" ).arg( testIds.join("\",\n    \"") );
+            }
             json.write( QString( "{\n"
                         "  \"id\": \"%1\",\n"
                         "  \"name\": \"%2\",\n"
                         "  \"description\": \"%3\",\n"
                         "  \"type\": \"%4\",\n"
-                        "  \"origin\": \"user_need\"\n"
-                        "}" ).arg( id ).arg( name ).arg( description ).arg( type ).toUtf8()
+                        "  \"origin\": \"user_need\"%5\n"
+                        "}" ).arg( id ).arg( name ).arg( description ).arg( type ).arg( testIdsJson ).toUtf8()
                         );
             json.close();
         }
     }
 }
 
-void TestRail::readCases()
+QStringList TestRail::readCases()
 {
     Q_ASSERT( xml.isStartElement() && xml.name() == QLatin1String( "cases" ) );
+
+    QStringList testIds;
 
     while( xml.readNextStartElement() )
     {
         if( xml.name() == QLatin1String( "case" ) )
         {
-            readCase();
+            testIds.append( readCase() );
         }
         else
         {
@@ -215,11 +223,14 @@ void TestRail::readCases()
             xml.skipCurrentElement();
         }
     }
+    return testIds;
 }
 
-void TestRail::readCase()
+QString TestRail::readCase()
 {
     Q_ASSERT( xml.isStartElement() && xml.name() == QLatin1String( "case" ) );
+
+    QString id;
 
     while( xml.readNextStartElement() )
     {
@@ -230,11 +241,11 @@ void TestRail::readCase()
             xml.name() == QLatin1String( "priority" ) ||
             xml.name() == QLatin1String( "estimate" ) )
         {
-//            qDebug() << xml.readElementText();
+            xml.readElementText();
         }
         else if( xml.name() == QLatin1String( "references" ) )
         {
-//            qDebug() << xml.readElementText();
+            id = xml.readElementText().split('.').last();
         }
         else if( xml.name() == QLatin1String( "custom" ) )
         {
@@ -246,7 +257,7 @@ void TestRail::readCase()
             xml.skipCurrentElement();
         }
     }
-    xml.skipCurrentElement();
+    return id;
 }
 
 void TestRail::readCustom()
@@ -269,7 +280,6 @@ void TestRail::readCustom()
             xml.skipCurrentElement();
         }
     }
-    xml.skipCurrentElement();
 }
 
 void TestRail::readAutomationType()
@@ -292,6 +302,7 @@ void TestRail::readAutomationType()
         }
         else if( xml.name() == QLatin1String( "value" ) )
         {
+            xml.readElementText();
         }
         else
         {
@@ -299,7 +310,6 @@ void TestRail::readAutomationType()
             xml.skipCurrentElement();
         }
     }
-    xml.skipCurrentElement();
 }
 
 void TestRail::readStepsSeperated()
@@ -328,12 +338,15 @@ void TestRail::readStep()
     {
         if( xml.name() == QLatin1String( "index" ) )
         {
+            xml.readElementText();
         }
         else if( xml.name() == QLatin1String( "content" ) )
         {
+            xml.readElementText();
         }
         else if( xml.name() == QLatin1String( "expected" ) )
         {
+            xml.readElementText();
         }
         else
         {
@@ -341,7 +354,6 @@ void TestRail::readStep()
             xml.skipCurrentElement();
         }
     }
-    xml.skipCurrentElement();
 }
 
 QString TestRail::generateId( qsizetype size )
