@@ -4,8 +4,6 @@
 #include <QDir>
 #include <QRegularExpression>
 #include <QRandomGenerator>
-#include <QJsonObject>
-#include <QJsonDocument>
 
 TestRail::TestRail()
 {
@@ -102,65 +100,65 @@ void TestRail::readSection()
 {
     Q_ASSERT( xml.isStartElement() && xml.name() == QLatin1String( "section" ) );
 
-    QJsonObject lifeCycleToolObject;
     QString id;
+    QString name;
+    QString description;
+    QString type;
+//    QString origin;
 
     while( xml.readNextStartElement() )
     {
         if( xml.name() == QLatin1String( "name" ) )
         {
-            lifeCycleToolObject.insert( "name", xml.readElementText() );
+            name = xml.readElementText();
         }
         else if( xml.name() == QLatin1String( "description" ) )
         {
-            const QString & description = xml.readElementText();
-            int index = description.indexOf( "***:" );
+            const QString & idAndDescription = xml.readElementText();
+            int index = idAndDescription.indexOf( "***:" );
             if( index > 0 )
             {
-                if( description.startsWith( "***USN-" ) )
+                if( idAndDescription.startsWith( "***USN-" ) )
                 {
-                    id = description.mid(7, index-7);
+                    id = idAndDescription.mid(7, index-7);
                     if( id.contains( '?' ) )
                     {
                         id = generateId( 5 );
                     }
-                    lifeCycleToolObject.insert( "id", id );
-                    lifeCycleToolObject.insert( "description", description.mid(index+4).trimmed() );
-                    lifeCycleToolObject.insert( "type", "user_need" );
-                    lifeCycleToolObject.insert( "origin", "user_need" );
+                    description = description.mid(index+4).trimmed();
+                    type = "user_need";
+//                    origin = "user_need";
                 }
-                else if( description.startsWith( "***REQ-" ) )
+                else if( idAndDescription.startsWith( "***REQ-" ) )
                 {
-                    id = description.mid(7, index-7);
+                    id = idAndDescription.mid(7, index-7);
                     if( id.contains( '?' ) )
                     {
                         id = generateId( 5 );
                     }
-                    lifeCycleToolObject.insert( "id", id );
-                    lifeCycleToolObject.insert( "description", description.mid(index+4).trimmed() );
-                    lifeCycleToolObject.insert( "type", "requirement" );
-                    lifeCycleToolObject.insert( "origin", "user_need" );
+                    description = description.mid(index+4).trimmed();
+                    type = "requirement";
+//                    origin = "user_need";
                 }
-                else if( description.startsWith( "***SPC-" ) )
+                else if( idAndDescription.startsWith( "***SPC-" ) )
                 {
-                    id = description.mid(7, index-7);
+                    id = idAndDescription.mid(7, index-7);
                     if( id.contains( '?' ) )
                     {
                         id = generateId( 5 );
                     }
-                    lifeCycleToolObject.insert( "id", id );
-                    lifeCycleToolObject.insert( "description", description.mid(index+4).trimmed() );
-                    lifeCycleToolObject.insert( "type", "specification" );
-                    lifeCycleToolObject.insert( "origin", "user_need" );
+                    description = description.mid(index+4).trimmed();
+                    type = "specification";
+//                    origin = "user_need";
                 }
                 else
                 {
-                    qDebug() << "Badly formed description, the id must be of the form of ***XXX-?????***: ( @" << xml.lineNumber() << ") --> " << description << index;
+                    qDebug() << "Badly formed description, the id must be of the form of ***XXX-?????***: ( @" << xml.lineNumber() << ") --> " << idAndDescription << index;
                 }
             }
-            else if( description.contains( "USN-" ) || description.contains( "REQ-" ) || description.contains( "SPC-" ) )
+            else if( idAndDescription.contains( "USN-" ) || idAndDescription.contains( "REQ-" ) || idAndDescription.contains( "SPC-" ) )
             {
-                qDebug() << "Badly formed description, the id must be of the form of ***XXX-?????***: ( @" << xml.lineNumber() << ") --> " << description;
+                qDebug() << "Badly formed description, the id must be of the form of ***XXX-?????***: ( @" << xml.lineNumber() << ") --> " << idAndDescription;
             }
         }
         else if( xml.name() == QLatin1String( "sections" ) )
@@ -188,8 +186,14 @@ void TestRail::readSection()
         else
         {
             qDebug() << "Creating" << json.fileName();
-            QJsonDocument lifeCycleToolJson( lifeCycleToolObject );
-            json.write( lifeCycleToolJson.toJson() );
+            json.write( QString( "{\n"
+                        "  \"id\": \"%1\",\n"
+                        "  \"name\": \"%2\",\n"
+                        "  \"description\": \"%3\",\n"
+                        "  \"type\": \"%4\",\n"
+                        "  \"origin\": \"user_need\"\n"
+                        "}" ).arg( id ).arg( name ).arg( description ).arg( type ).toUtf8()
+                        );
             json.close();
         }
     }
