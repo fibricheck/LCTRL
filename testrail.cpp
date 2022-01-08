@@ -48,7 +48,7 @@ bool TestRail::readFile( const QString & fileName )
         }
         if( xml.name() == QLatin1String( "sections" ) )
         {
-            QStringList order = readSections( "" );
+            QStringList order = readSections( "", QStringList() );
             QFile orderJson( path + "/Documentation/requirements/order.json" );
             if( ! orderJson.open( QFile::WriteOnly ) )
             {
@@ -89,7 +89,7 @@ bool TestRail::needsDirectory( const QString & directory )
     return true;
 }
 
-QStringList TestRail::readSections( const QString & parentId )
+QStringList TestRail::readSections( const QString & parentId, QStringList parentNames )
 {
     Q_ASSERT( xml.isStartElement() && xml.name() == QLatin1String( "sections" ) );
 
@@ -99,7 +99,7 @@ QStringList TestRail::readSections( const QString & parentId )
     {
         if( xml.name() == QLatin1String( "section" ) )
         {
-            order.append( readSection( parentId ) );
+            order.append( readSection( parentId, parentNames ) );
         }
         else
         {
@@ -111,7 +111,7 @@ QStringList TestRail::readSections( const QString & parentId )
     return order;
 }
 
-QStringList TestRail::readSection( const QString & parentId )
+QStringList TestRail::readSection( const QString & parentId, QStringList parentNames )
 {
     Q_ASSERT( xml.isStartElement() && xml.name() == QLatin1String( "section" ) );
 
@@ -121,8 +121,8 @@ QStringList TestRail::readSection( const QString & parentId )
     QString name;
     QString description;
     QString type;
-    QStringList testIds;
 //    QString origin;
+    QStringList testIds;
 
     while( xml.readNextStartElement() )
     {
@@ -173,7 +173,12 @@ QStringList TestRail::readSection( const QString & parentId )
                 {
                     qDebug() << "Badly formed description, the id must be of the form of ***XXX-?????***: ( @" << xml.lineNumber() << ") --> " << idAndDescription << index;
                 }
-                order.append( parentId + id );
+
+                if( ! id.isEmpty() )
+                {
+                    order.append( parentId + id );
+                    parentNames.append( name );
+                }
             }
             else if( idAndDescription.contains( "USN-" ) || idAndDescription.contains( "REQ-" ) || idAndDescription.contains( "SPC-" ) )
             {
@@ -182,11 +187,11 @@ QStringList TestRail::readSection( const QString & parentId )
         }
         else if( xml.name() == QLatin1String( "sections" ) )
         {
-            order.append( readSections( id.isEmpty()?parentId:(parentId + id+'.') ) );
+            order.append( readSections( id.isEmpty()?parentId:(parentId + id+'.'), parentNames ) );
         }
         else if( xml.name() == QLatin1String( "cases" ) )
         {
-            testIds = readCases();
+            testIds = readCases( parentNames );
         }
         else
         {
@@ -225,7 +230,7 @@ QStringList TestRail::readSection( const QString & parentId )
     return order;
 }
 
-QStringList TestRail::readCases()
+QStringList TestRail::readCases( QStringList parentNames )
 {
     Q_ASSERT( xml.isStartElement() && xml.name() == QLatin1String( "cases" ) );
 
@@ -235,7 +240,7 @@ QStringList TestRail::readCases()
     {
         if( xml.name() == QLatin1String( "case" ) )
         {
-            testIds.append( readCase() );
+            testIds.append( readCase( parentNames ) );
         }
         else
         {
@@ -246,16 +251,17 @@ QStringList TestRail::readCases()
     return testIds;
 }
 
-QString TestRail::readCase()
+QString TestRail::readCase( QStringList parentNames )
 {
     Q_ASSERT( xml.isStartElement() && xml.name() == QLatin1String( "case" ) );
 
     QString id;
+    QString name;
+    QVector<QPair<QString,QString>> testSteps;
 
     while( xml.readNextStartElement() )
     {
         if( xml.name() == QLatin1String( "id" ) ||
-            xml.name() == QLatin1String( "title" ) ||
             xml.name() == QLatin1String( "template" ) ||
             xml.name() == QLatin1String( "type" ) ||
             xml.name() == QLatin1String( "priority" ) ||
@@ -263,13 +269,17 @@ QString TestRail::readCase()
         {
             xml.readElementText();
         }
+        else if( xml.name() == QLatin1String( "title" ) )
+        {
+            name = xml.readElementText().trimmed().replace( '"', "\\\"" ).replace( '\n', "\\n" );
+        }
         else if( xml.name() == QLatin1String( "references" ) )
         {
             id = xml.readElementText().split('.').last();
         }
         else if( xml.name() == QLatin1String( "custom" ) )
         {
-            readCustom();
+            testSteps = readCustom();
         }
         else
         {
@@ -277,12 +287,60 @@ QString TestRail::readCase()
             xml.skipCurrentElement();
         }
     }
+
+    if( ! id.isEmpty() )
+    {
+        QFile json( path + "/Documentation/testCases/" + id + ".json" );
+        if( ! json.open( QFile::WriteOnly ) )
+        {
+            qDebug() << "Could not create" << json.fileName();
+        }
+        else
+        {
+            QString testStepsJson = "";
+            QString expectedResult = "";
+            if( testSteps.size() > 0 )
+            {
+                expectedResult = testSteps.last().second;
+                testStepsJson = QString( ",\n  \"testSteps\": [\n    \"%1" ).arg( testSteps.first().first );
+                for( int i = 1 ; i < testSteps.size() ; ++i )
+                {
+                    if( ! testSteps.at(i-1).second.isEmpty() )
+                    {
+                        testStepsJson += "\\n\\n**assertion:**\\n```\\n";
+                        testStepsJson += testSteps.at(i-1).second;
+                        testStepsJson += "\\n```";
+                    }
+                    testStepsJson += "\\n\",\n    \"";
+                    testStepsJson += testSteps.at(i).first;
+                }
+                testStepsJson += "\\n\"\n  ]";
+            }
+            QString parentNamesJson = "";
+            if( parentNames.size() > 0 )
+            {
+                parentNamesJson = QString( ",\n  \"parentNames\": [\n    \"%1\"\n  ]" ).arg( parentNames.join("\",\n    \"") );
+            }
+            json.write( QString( "{\n"
+                        "  \"id\": \"%1\",\n"
+                        "  \"name\": \"%2\"%3,\n"
+                        "  \"expectedResult\": \"%4\",\n"
+                        "  \"type\": \"manual\"%5\n"
+                        "}" ).arg( id ).arg( name ).arg( testStepsJson ).arg( expectedResult ).arg( parentNamesJson ).toUtf8()
+                        );
+            json.close();
+            qDebug() << "Created" << json.fileName();
+        }
+    }
+
     return id;
 }
 
-void TestRail::readCustom()
+QVector<QPair<QString,QString>> TestRail::readCustom()
 {
     Q_ASSERT( xml.isStartElement() && xml.name() == QLatin1String( "custom" ) );
+
+    QVector<QPair<QString,QString>> testSteps;
 
     while( xml.readNextStartElement() )
     {
@@ -292,7 +350,7 @@ void TestRail::readCustom()
         }
         else if( xml.name() == QLatin1String( "steps_separated" ) )
         {
-            readStepsSeperated();
+            testSteps = readStepsSeperated();
         }
         else
         {
@@ -300,6 +358,8 @@ void TestRail::readCustom()
             xml.skipCurrentElement();
         }
     }
+
+    return testSteps;
 }
 
 void TestRail::readAutomationType()
@@ -332,15 +392,17 @@ void TestRail::readAutomationType()
     }
 }
 
-void TestRail::readStepsSeperated()
+QVector<QPair<QString,QString>> TestRail::readStepsSeperated()
 {
     Q_ASSERT( xml.isStartElement() && xml.name() == QLatin1String( "steps_separated" ) );
+
+    QVector<QPair<QString,QString>> testSteps;
 
     while( xml.readNextStartElement() )
     {
         if( xml.name() == QLatin1String( "step" ) )
         {
-            readStep();
+            testSteps.append( readStep() );
         }
         else
         {
@@ -348,11 +410,15 @@ void TestRail::readStepsSeperated()
             xml.skipCurrentElement();
         }
     }
+
+    return testSteps;
 }
 
-void TestRail::readStep()
+QPair<QString,QString> TestRail::readStep()
 {
     Q_ASSERT( xml.isStartElement() && xml.name() == QLatin1String( "step" ) );
+
+    QPair<QString,QString> testStep;
 
     while( xml.readNextStartElement() )
     {
@@ -362,11 +428,11 @@ void TestRail::readStep()
         }
         else if( xml.name() == QLatin1String( "content" ) )
         {
-            xml.readElementText();
+            testStep.first = xml.readElementText().trimmed().replace( '"', "\\\"" ).replace( '\n', "\\n" );
         }
         else if( xml.name() == QLatin1String( "expected" ) )
         {
-            xml.readElementText();
+            testStep.second = xml.readElementText().trimmed().replace( '"', "\\\"" ).replace( '\n', "\\n" );
         }
         else
         {
@@ -374,6 +440,8 @@ void TestRail::readStep()
             xml.skipCurrentElement();
         }
     }
+
+    return testStep;
 }
 
 QString TestRail::generateId( qsizetype size )

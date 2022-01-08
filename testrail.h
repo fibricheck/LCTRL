@@ -12,14 +12,14 @@ public:
 
 private:
     bool needsDirectory( QString const & directory );
-    QStringList readSections( const QString & parentId );
-    QStringList readSection( const QString & parentId );
-    QStringList readCases();
-    QString readCase();
-    void readCustom();
+    QStringList readSections( const QString & parentId, QStringList parentNames );
+    QStringList readSection( const QString & parentId, QStringList parentNames );
+    QStringList readCases( QStringList parentNames );
+    QString readCase( QStringList parentNames );
+    QVector<QPair<QString, QString>> readCustom();
     void readAutomationType();
-    void readStepsSeperated();
-    void readStep();
+    QVector<QPair<QString, QString>> readStepsSeperated();
+    QPair<QString, QString> readStep();
     QString generateId( qsizetype size );
     QXmlStreamReader xml;
     QString path;
