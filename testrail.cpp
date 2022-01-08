@@ -48,7 +48,18 @@ bool TestRail::readFile( const QString & fileName )
         }
         if( xml.name() == QLatin1String( "sections" ) )
         {
-            readSections();
+            QStringList order = readSections( "" );
+            QFile orderJson( path + "/Documentation/requirements/order.json" );
+            if( ! orderJson.open( QFile::WriteOnly ) )
+            {
+                qDebug() << "Could not create" << orderJson.fileName();
+            }
+            else
+            {
+                orderJson.write( QString( "{\n  \"order\": [\n    \"%1\"\n  ]\n}" ).arg( order.join("\",\n    \"") ).toUtf8() );
+            }
+            orderJson.close();
+            qDebug() << "Created" << orderJson.fileName();
         }
         else
         {
@@ -78,15 +89,17 @@ bool TestRail::needsDirectory( const QString & directory )
     return true;
 }
 
-void TestRail::readSections()
+QStringList TestRail::readSections( const QString & parentId )
 {
     Q_ASSERT( xml.isStartElement() && xml.name() == QLatin1String( "sections" ) );
+
+    QStringList order;
 
     while( xml.readNextStartElement() )
     {
         if( xml.name() == QLatin1String( "section" ) )
         {
-            readSection();
+            order.append( readSection( parentId ) );
         }
         else
         {
@@ -94,11 +107,15 @@ void TestRail::readSections()
             xml.skipCurrentElement();
         }
     }
+
+    return order;
 }
 
-void TestRail::readSection()
+QStringList TestRail::readSection( const QString & parentId )
 {
     Q_ASSERT( xml.isStartElement() && xml.name() == QLatin1String( "section" ) );
+
+    QStringList order;
 
     QString id;
     QString name;
@@ -156,6 +173,7 @@ void TestRail::readSection()
                 {
                     qDebug() << "Badly formed description, the id must be of the form of ***XXX-?????***: ( @" << xml.lineNumber() << ") --> " << idAndDescription << index;
                 }
+                order.append( parentId + id );
             }
             else if( idAndDescription.contains( "USN-" ) || idAndDescription.contains( "REQ-" ) || idAndDescription.contains( "SPC-" ) )
             {
@@ -164,7 +182,7 @@ void TestRail::readSection()
         }
         else if( xml.name() == QLatin1String( "sections" ) )
         {
-            readSections();
+            order.append( readSections( id.isEmpty()?parentId:(parentId + id+'.') ) );
         }
         else if( xml.name() == QLatin1String( "cases" ) )
         {
@@ -186,7 +204,6 @@ void TestRail::readSection()
         }
         else
         {
-            qDebug() << "Creating" << json.fileName();
             QString testIdsJson = "";
             if( testIds.size() > 0 )
             {
@@ -201,8 +218,11 @@ void TestRail::readSection()
                         "}" ).arg( id ).arg( name ).arg( description ).arg( type ).arg( testIdsJson ).toUtf8()
                         );
             json.close();
+            qDebug() << "Created" << json.fileName();
         }
     }
+
+    return order;
 }
 
 QStringList TestRail::readCases()
