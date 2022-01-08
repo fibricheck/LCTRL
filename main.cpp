@@ -1,18 +1,32 @@
 #include <QCoreApplication>
+#include <QString>
 #include "lifecycletool.h"
+#include "testrail.h"
 
 int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
     if( a.arguments().size() < 2 ) {
-        qDebug() << "Drag and drop the project Life Cycle Tool Document folder on the application";
+        qDebug() << "Drag and drop the exported TestRail xml OR project Life Cycle Tool Document folder on the application";
         exit(1);
     }
-    LifeCycleTool lifeCycleTool;
-    if( ! lifeCycleTool.readFile( a.arguments().at(1) ) )
+    if( a.arguments().at(1).endsWith( ".xml", Qt::CaseInsensitive ) )
     {
-        qDebug() << "Failed...";
-        exit(2);
+        TestRail testRail;
+        if( ! testRail.readFile( a.arguments().at(1) ) )
+        {
+            qDebug() << "Failed...";
+            exit(2);
+        }
+    }
+    else
+    {
+        LifeCycleTool lifeCycleTool;
+        if( ! lifeCycleTool.readFile( a.arguments().at(1) ) )
+        {
+            qDebug() << "Failed...";
+            exit(2);
+        }
     }
 
     return 0;

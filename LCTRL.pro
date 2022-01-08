@@ -9,7 +9,8 @@ CONFIG -= app_bundle
 
 SOURCES += \
         lifecycletool.cpp \
-        main.cpp
+        main.cpp \
+        testrail.cpp
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
@@ -17,4 +18,5 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
 
 HEADERS += \
-    lifecycletool.h
+    lifecycletool.h \
+    testrail.h
