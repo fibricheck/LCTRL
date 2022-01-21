@@ -258,6 +258,7 @@ QString TestRail::readCase( QStringList parentNames )
     QString id;
     QString name;
     QVector<QPair<QString,QString>> testSteps;
+    QString preconditions;
 
     while( xml.readNextStartElement() )
     {
@@ -279,7 +280,7 @@ QString TestRail::readCase( QStringList parentNames )
         }
         else if( xml.name() == QLatin1String( "custom" ) )
         {
-            testSteps = readCustom();
+            testSteps = readCustom( preconditions );
         }
         else
         {
@@ -303,6 +304,12 @@ QString TestRail::readCase( QStringList parentNames )
             {
                 expectedResult = testSteps.last().second;
                 testStepsJson = QString( ",\n  \"testSteps\": [\n    \"%1" ).arg( testSteps.first().first );
+                if( ! preconditions.isEmpty() )
+                {
+                    testStepsJson += "\\n\\n**preconditions:**\\n```\\n";
+                    testStepsJson += preconditions;
+                    testStepsJson += "\\n```";
+                }
                 for( int i = 1 ; i < testSteps.size() ; ++i )
                 {
                     if( ! testSteps.at(i-1).second.isEmpty() )
@@ -311,10 +318,10 @@ QString TestRail::readCase( QStringList parentNames )
                         testStepsJson += testSteps.at(i-1).second;
                         testStepsJson += "\\n```";
                     }
-                    testStepsJson += "\\n\",\n    \"";
+                    testStepsJson += "\",\n    \"";
                     testStepsJson += testSteps.at(i).first;
                 }
-                testStepsJson += "\\n\"\n  ]";
+                testStepsJson += "\"\n  ]";
             }
             QString parentNamesJson = "";
             if( parentNames.size() > 0 )
@@ -336,7 +343,7 @@ QString TestRail::readCase( QStringList parentNames )
     return id;
 }
 
-QVector<QPair<QString,QString>> TestRail::readCustom()
+QVector<QPair<QString,QString>> TestRail::readCustom( QString & preconditions )
 {
     Q_ASSERT( xml.isStartElement() && xml.name() == QLatin1String( "custom" ) );
 
@@ -347,6 +354,10 @@ QVector<QPair<QString,QString>> TestRail::readCustom()
         if( xml.name() == QLatin1String( "automation_type" ) )
         {
             readAutomationType();
+        }
+        else if( xml.name() == QLatin1String( "preconds" ) )
+        {
+            preconditions = xml.readElementText().trimmed().replace( '"', "\\\"" ).replace( '\n', "\\n" );
         }
         else if( xml.name() == QLatin1String( "steps_separated" ) )
         {

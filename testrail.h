@@ -16,7 +16,7 @@ private:
     QStringList readSection( const QString & parentId, QStringList parentNames );
     QStringList readCases( QStringList parentNames );
     QString readCase( QStringList parentNames );
-    QVector<QPair<QString, QString>> readCustom();
+    QVector<QPair<QString, QString>> readCustom( QString & preconditions );
     void readAutomationType();
     QVector<QPair<QString, QString>> readStepsSeperated();
     QPair<QString, QString> readStep();
