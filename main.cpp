@@ -1,5 +1,6 @@
 #include <QCoreApplication>
 #include <QString>
+#include <QDebug>
 #include "lifecycletool.h"
 #include "testrail.h"
 

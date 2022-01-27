@@ -48,7 +48,7 @@ bool TestRail::readFile( const QString & fileName )
         }
         if( xml.name() == QLatin1String( "sections" ) )
         {
-            QStringList order = readSections( "", QStringList() );
+			QStringList order = readSections( "", QStringList(), "" );
             QFile orderJson( path + "/Documentation/requirements/order.json" );
             if( ! orderJson.open( QFile::WriteOnly ) )
             {
@@ -89,7 +89,7 @@ bool TestRail::needsDirectory( const QString & directory )
     return true;
 }
 
-QStringList TestRail::readSections( const QString & parentId, QStringList parentNames )
+QStringList TestRail::readSections( const QString & parentId, QStringList parentNames, const QString & topNonParentName )
 {
     Q_ASSERT( xml.isStartElement() && xml.name() == QLatin1String( "sections" ) );
 
@@ -99,7 +99,7 @@ QStringList TestRail::readSections( const QString & parentId, QStringList parent
     {
         if( xml.name() == QLatin1String( "section" ) )
         {
-            order.append( readSection( parentId, parentNames ) );
+			order.append( readSection( parentId, parentNames, topNonParentName ) );
         }
         else
         {
@@ -111,7 +111,7 @@ QStringList TestRail::readSections( const QString & parentId, QStringList parent
     return order;
 }
 
-QStringList TestRail::readSection( const QString & parentId, QStringList parentNames )
+QStringList TestRail::readSection( const QString & parentId, QStringList parentNames, const QString & topNonParentName )
 {
     Q_ASSERT( xml.isStartElement() && xml.name() == QLatin1String( "section" ) );
 
@@ -187,7 +187,7 @@ QStringList TestRail::readSection( const QString & parentId, QStringList parentN
         }
         else if( xml.name() == QLatin1String( "sections" ) )
         {
-            order.append( readSections( id.isEmpty()?parentId:(parentId + id+'.'), parentNames ) );
+			order.append( readSections( id.isEmpty()?parentId:(parentId + id+'.'), parentNames, id.isEmpty()?name:"" ) );
         }
         else if( xml.name() == QLatin1String( "cases" ) )
         {
@@ -203,7 +203,11 @@ QStringList TestRail::readSection( const QString & parentId, QStringList parentN
     if( ! id.isEmpty() )
     {
         QFile json( path + "/Documentation/requirements/" + id + ".json" );
-        if( ! json.open( QFile::WriteOnly ) )
+		if( json.exists() )
+		{
+			qDebug() << "Duplicate id for " << json.fileName();
+		}
+		if( ! json.open( QFile::WriteOnly ) )
         {
             qDebug() << "Could not create" << json.fileName();
         }
@@ -220,7 +224,7 @@ QStringList TestRail::readSection( const QString & parentId, QStringList parentN
                         "  \"description\": \"%3\",\n"
                         "  \"type\": \"%4\",\n"
                         "  \"origin\": \"user_need\"%5\n"
-                        "}" ).arg( id ).arg( name ).arg( description ).arg( type ).arg( testIdsJson ).toUtf8()
+						"}" ).arg( id ).arg( name.prepend( topNonParentName.isEmpty()?"":(topNonParentName+": ") ) ).arg( description ).arg( type ).arg( testIdsJson ).toUtf8()
                         );
             json.close();
             qDebug() << "Created" << json.fileName();
@@ -292,7 +296,11 @@ QString TestRail::readCase( QStringList parentNames )
     if( ! id.isEmpty() )
     {
         QFile json( path + "/Documentation/testCases/" + id + ".json" );
-        if( ! json.open( QFile::WriteOnly ) )
+		if( json.exists() )
+		{
+			qDebug() << "Duplicate id for " << json.fileName();
+		}
+		if( ! json.open( QFile::WriteOnly ) )
         {
             qDebug() << "Could not create" << json.fileName();
         }
@@ -463,5 +471,10 @@ QString TestRail::generateId( qsizetype size )
     {
         id[i] = symbols[ QRandomGenerator::global()->bounded( symbols.size() ) ];
     }
-    return id;
+	if( QFile::exists( path + "/Documentation/testCases/" + id + ".json" ) || QFile::exists( path + "/Documentation/requirements/" + id + ".json" ) )
+	{
+		qDebug() << "Regenerate ID" << id << "exists !";
+		return generateId( size );
+	}
+	return id;
 }
