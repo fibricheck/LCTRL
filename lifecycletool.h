@@ -6,8 +6,8 @@
 class LifeCycleTool
 {
 public:
-    LifeCycleTool();
-    bool readFile( const QString & path );
+	LifeCycleTool();
+	bool readFile( const QString & path );
 };
 
 #endif // LIFECYCLETOOL_H
