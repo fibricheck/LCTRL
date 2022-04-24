@@ -21,6 +21,7 @@ private:
     QVector<QPair<QString, QString>> readStepsSeperated();
     QPair<QString, QString> readStep();
     QString generateId( qsizetype size );
+	QFile todo;
     QXmlStreamReader xml;
     QString path;
 };

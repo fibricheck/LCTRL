@@ -24,6 +24,11 @@ bool TestRail::readFile( const QString & fileName )
 	{
 		return false;
 	}
+	todo.setFileName( path + "/Documentation/TODO.log" );
+	if( ! todo.open( QFile::WriteOnly ) )
+	{
+		qDebug() << "Could not create" << todo.fileName();
+	}
 	xml.setDevice( &file );
 	if( xml.readNextStartElement() )
 	{
@@ -71,6 +76,7 @@ bool TestRail::readFile( const QString & fileName )
 	{
 		qDebug() << "Bad XML file (" << file.fileName() << ")" << xml.errorString();
 	}
+	todo.close();
 	file.close();
 	return !xml.error();
 }
@@ -128,7 +134,7 @@ QStringList TestRail::readSection( const QString & parentId, QStringList parentN
 	{
 		if( xml.name() == QLatin1String( "name" ) )
 		{
-			name = xml.readElementText().trimmed().replace( '"', "\\\"" ).replace( '\n', "\\n" ).replace( '\t', "\\t" );
+			name = xml.readElementText().trimmed().replace( '\\', "\\\\" ).replace( '"', "\\\"" ).replace( '\n', "\\n" ).replace( '\t', "\\t" );
 		}
 		else if( xml.name() == QLatin1String( "description" ) )
 		{
@@ -143,7 +149,7 @@ QStringList TestRail::readSection( const QString & parentId, QStringList parentN
 					{
 						id = generateId( 5 );
 					}
-					description = idAndDescription.mid(index+4).trimmed().replace( '"', "\\\"" ).replace( '\n', "\\n" ).replace( '\t', "\\t" );
+					description = idAndDescription.mid(index+4).trimmed().replace( '\\', "\\\\" ).replace( '"', "\\\"" ).replace( '\n', "\\n" ).replace( '\t', "\\t" );
 					type = "user_need";
 //                    origin = "user_need";
 				}
@@ -154,7 +160,7 @@ QStringList TestRail::readSection( const QString & parentId, QStringList parentN
 					{
 						id = generateId( 5 );
 					}
-					description = idAndDescription.mid(index+4).trimmed().trimmed().replace( '"', "\\\"" ).replace( '\n', "\\n" ).replace( '\t', "\\t" );
+					description = idAndDescription.mid(index+4).trimmed().trimmed().replace( '\\', "\\\\" ).replace( '"', "\\\"" ).replace( '\n', "\\n" ).replace( '\t', "\\t" );
 					type = "requirement";
 //                    origin = "user_need";
 				}
@@ -165,7 +171,7 @@ QStringList TestRail::readSection( const QString & parentId, QStringList parentN
 					{
 						id = generateId( 5 );
 					}
-					description = idAndDescription.mid(index+4).trimmed().trimmed().replace( '"', "\\\"" ).replace( '\n', "\\n" ).replace( '\t', "\\t" );
+					description = idAndDescription.mid(index+4).trimmed().trimmed().replace( '\\', "\\\\" ).replace( '"', "\\\"" ).replace( '\n', "\\n" ).replace( '\t', "\\t" );
 					type = "specification";
 //                    origin = "user_need";
 				}
@@ -206,6 +212,7 @@ QStringList TestRail::readSection( const QString & parentId, QStringList parentN
 		if( json.exists() )
 		{
 			qDebug() << "Duplicate id for " << json.fileName();
+			todo.write( QString( "Duplicate requirement id : %1 \n" ).arg( id ).toUtf8() );
 		}
 		if( ! json.open( QFile::WriteOnly ) )
 		{
@@ -218,10 +225,11 @@ QStringList TestRail::readSection( const QString & parentId, QStringList parentN
 			{
 				testIdsJson = QString( ",\n  \"testIds\": [\n    \"%1\"\n  ]" ).arg( testIds.join("\",\n    \"") );
 			}
-//			else
-//			{
+			else if( type == "specification" )
+			{
+				todo.write( QString( "Specification without test cases : %1 \n" ).arg( id ).toUtf8() );
 //				testIdsJson = ",\n  \"testIds\": []";
-//			}
+			}
 			json.write( QString( "{\n"
 						"  \"id\": \"%1\",\n"
 						"  \"name\": \"%2\",\n"
@@ -288,7 +296,7 @@ QString TestRail::readCase( QStringList parentNames )
 		}
 		else if( xml.name() == QLatin1String( "title" ) )
 		{
-			name = xml.readElementText().trimmed().replace( '"', "\\\"" ).replace( '\n', "\\n" ).replace( '\t', "\\t" );
+			name = xml.readElementText().trimmed().replace( '\\', "\\\\" ).replace( '"', "\\\"" ).replace( '\n', "\\n" ).replace( '\t', "\\t" );
 		}
 		else if( xml.name() == QLatin1String( "references" ) )
 		{
@@ -316,6 +324,7 @@ QString TestRail::readCase( QStringList parentNames )
 		if( json.exists() )
 		{
 			qDebug() << "Duplicate id for " << json.fileName();
+			todo.write( QString( "Duplicate testcase id : %1 \n" ).arg( id ).toUtf8() );
 		}
 		if( ! json.open( QFile::WriteOnly ) )
 		{
@@ -387,7 +396,7 @@ QVector<QPair<QString,QString>> TestRail::readCustom( QString & preconditions )
 		}
 		else if( xml.name() == QLatin1String( "preconds" ) )
 		{
-			preconditions = xml.readElementText().trimmed().replace( '"', "\\\"" ).replace( '\n', "\\n" ).replace( '\t', "\\t" );
+			preconditions = xml.readElementText().trimmed().replace( '\\', "\\\\" ).replace( '"', "\\\"" ).replace( '\n', "\\n" ).replace( '\t', "\\t" );
 		}
 		else if( xml.name() == QLatin1String( "steps_separated" ) )
 		{
@@ -469,11 +478,11 @@ QPair<QString,QString> TestRail::readStep()
 		}
 		else if( xml.name() == QLatin1String( "content" ) )
 		{
-			testStep.first = xml.readElementText().trimmed().replace( '"', "\\\"" ).replace( '\n', "\\n" ).replace( '\t', "\\t" );
+			testStep.first = xml.readElementText().trimmed().replace( '\\', "\\\\" ).replace( '"', "\\\"" ).replace( '\n', "\\n" ).replace( '\t', "\\t" );
 		}
 		else if( xml.name() == QLatin1String( "expected" ) )
 		{
-			testStep.second = xml.readElementText().trimmed().replace( '"', "\\\"" ).replace( '\n', "\\n" ).replace( '\t', "\\t" );
+			testStep.second = xml.readElementText().trimmed().replace( '\\', "\\\\" ).replace( '"', "\\\"" ).replace( '\n', "\\n" ).replace( '\t', "\\t" );
 		}
 		else
 		{

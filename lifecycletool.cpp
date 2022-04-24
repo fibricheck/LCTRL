@@ -55,6 +55,7 @@ bool LifeCycleTool::readFile( const QString & path )
     testRail.writeTextElement( "name", "Import" );
     testRail.writeTextElement( "description", "Imported by LCTRL v1.0 on " + QDateTime::currentDateTimeUtc().toString() + " from " + path );
     int level = 0;
+	QStringList groups;
     foreach( QJsonValue const & item, requirementsOrder.toArray() )
     {
         QStringList parts = item.toString().split( '.' );
@@ -87,6 +88,18 @@ bool LifeCycleTool::readFile( const QString & path )
         }
         QString const id = (type=="user_need"?"USN-":type=="requirement"?"REQ-":type=="specification"?"SPC-":"???-") + parts.last();
         qDebug() << ( parts.size() == 1 ? "" : parts.size() == 2 ? "\t" : "\t\t" ) << id;//name.toString();
+		QString groupOnly;
+		QString nameOnly;
+		if( name.toString().startsWith( '[' ) && name.toString().contains( ']' ) )
+		{
+			QStringList groupWithName = name.toString().split( ']' );
+			groupOnly = groupWithName.first().mid(1);
+			nameOnly = groupWithName.last().mid(1);
+		}
+		else
+		{
+			nameOnly = name.toString();
+		}
         if( parts.size() <= level )
         {
             testRail.writeEndElement(); //section
@@ -95,15 +108,38 @@ bool LifeCycleTool::readFile( const QString & path )
         {
             testRail.writeEndElement(); //sections
             testRail.writeEndElement(); //section
+			if( ! groups.takeLast().isEmpty() )
+			{
+				testRail.writeEndElement(); //sections
+				testRail.writeEndElement(); //section
+			}
             level--;
         }
         while( parts.size() > level )
         {
             testRail.writeStartElement( "sections" );
             level++;
+			groups.push_back( "" );
         }
-        testRail.writeStartElement( "section" );
-        testRail.writeTextElement( "name", name.toString() );
+		if( groupOnly != groups.last() )
+		{
+			if( ! groups.last().isEmpty() )
+			{
+				testRail.writeEndElement(); //sections
+				testRail.writeEndElement(); //section
+			}
+			if( ! groupOnly.isEmpty() )
+			{
+				testRail.writeStartElement( "section" );
+				testRail.writeTextElement( "name", groupOnly );
+				testRail.writeTextElement( "description", "" );
+				testRail.writeStartElement( "sections" );
+				groups.removeLast();
+				groups.push_back( groupOnly );
+			}
+		}
+		testRail.writeStartElement( "section" );
+		testRail.writeTextElement( "name", nameOnly );
         testRail.writeTextElement( "description", "***" + id + "***: " + description.toString() );
         if( object.contains( "testIds" ) && object.value( "testIds" ).isArray() && ! object.value( "testIds" ).toArray().isEmpty() )
         {
