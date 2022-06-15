@@ -168,7 +168,14 @@ bool LifeCycleTool::readFile( const QString & path )
                 }
                 testRail.writeTextElement( "title", test.value( "name" ).toString() );
                 testRail.writeTextElement( "template", "Test Case (Steps)" );
-                testRail.writeTextElement( "type", "Acceptance" );
+				if( test.contains( "tier" ) )
+				{
+					testRail.writeTextElement( "type", test.value( "tier" ).toString() );
+				}
+				else
+				{
+					testRail.writeTextElement( "type", "Other" );
+				}
                 testRail.writeTextElement( "priority", "Medium" );
 //                testRail.writeTextElement( "estimate", "" );
                 testRail.writeTextElement( "references", item.toString() + "." + testId.toString() );
