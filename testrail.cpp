@@ -281,18 +281,22 @@ QString TestRail::readCase( QStringList parentNames )
 
 	QString id;
 	QString name;
+	QString type = "manual";
 	QVector<QPair<QString,QString>> testSteps;
+	QString testRailID;
 	QString preconditions;
 
 	while( xml.readNextStartElement() )
 	{
-		if( xml.name() == QLatin1String( "id" ) ||
-			xml.name() == QLatin1String( "template" ) ||
-			xml.name() == QLatin1String( "type" ) ||
+		if( xml.name() == QLatin1String( "template" ) ||
 			xml.name() == QLatin1String( "priority" ) ||
 			xml.name() == QLatin1String( "estimate" ) )
 		{
 			xml.readElementText();
+		}
+		else if( xml.name() == QLatin1String( "id" ) )
+		{
+			testRailID = xml.readElementText();
 		}
 		else if( xml.name() == QLatin1String( "title" ) )
 		{
@@ -301,6 +305,14 @@ QString TestRail::readCase( QStringList parentNames )
 		else if( xml.name() == QLatin1String( "references" ) )
 		{
 			id = xml.readElementText().split('.').last();
+		}
+		else if( xml.name() == QLatin1String( "type" ) )
+		{
+			type = xml.readElementText().trimmed();
+			if( type == "Other" )
+			{
+				type = "manual";
+			}
 		}
 		else if( xml.name() == QLatin1String( "custom" ) )
 		{
@@ -371,8 +383,15 @@ QString TestRail::readCase( QStringList parentNames )
 						"  \"id\": \"%1\",\n"
 						"  \"name\": \"%2\"%3,\n"
 						"  \"expectedResult\": \"%4\",\n"
-						"  \"type\": \"manual\"%5\n"
-						"}" ).arg( id ).arg( name ).arg( testStepsJson ).arg( expectedResult ).arg( parentNamesJson ).toUtf8()
+						"  \"type\": \"manual\",\n"
+						"  \"tier\": \"%5\",\n"
+						"  \"keyValues\": [\n"
+						"    {\n"
+						"      \"key\": \"testrail-id\",\n"
+						"      \"value\": \"%6\"\n"
+						"    }\n"
+						"  ]%7\n"
+						"}" ).arg( id ).arg( name ).arg( testStepsJson ).arg( expectedResult ).arg( type ).arg( testRailID ).arg( parentNamesJson ).toUtf8()
 						);
 			json.close();
 			qDebug() << "Created" << json.fileName();
