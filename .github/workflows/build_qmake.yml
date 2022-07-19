@@ -22,4 +22,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Make
-        run: qmake ${{github.workspace}}\\LCTRL.pro
+        run: |
+          vcvarsall.bat
+          qmake ${{github.workspace}}\LCTRL.pro
