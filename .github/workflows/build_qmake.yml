@@ -20,4 +20,4 @@ jobs:
           aqtversion: '==2.0.0'
           extra: '--external 7z'
       - name: Make
-        run: qmake LCTRL.pro
+        run: qmake ${{github.workspace}}/LCTRL.pro
