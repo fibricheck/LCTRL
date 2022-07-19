@@ -46,6 +46,8 @@ jobs:
         uses: actions/checkout@v2
       - name: Make
         run: |
+          tree $Qt6_DIR
+          tree $Qt5_DIR
           export LD_LIBRARY_PATH=$Qt6_DIR/lib:$LD_LIBRARY_PATH
           qmake ${{github.workspace}}/LCTRL.pro
           make
