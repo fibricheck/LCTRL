@@ -62,7 +62,7 @@ jobs:
       - name: Upload
         uses: actions/upload-artifact@v3
         with:
-          name: LCTRL.exe
+          name: LCTRL
           path: ${{github.workspace}}/LCTRL
 #   build-linux:
 #     runs-on: ubuntu-latest
