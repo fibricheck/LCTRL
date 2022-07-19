@@ -6,7 +6,7 @@ on:
       - master
 
 jobs:
-  lint:
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Install Qt
@@ -23,9 +23,10 @@ jobs:
           cache: 'false'
           cache-key-prefix: 'install-qt-action'
           manually-cached: 'false'
-          setup-python: 'false'
+          setup-python: 'true'
           tools: 'tools_ifw tools_qtcreator,qt.tools.qtcreator'
           set-env: 'false'
           tools-only: 'false'
           aqtversion: '==2.0.0'
+          py7zrversion: '==0.16.1'
           extra: '--external 7z'
