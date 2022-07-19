@@ -19,5 +19,7 @@ jobs:
           setup-python: 'false'
           aqtversion: '==2.0.0'
           extra: '--external 7z'
+      - name: Checkout
+        uses: actions/checkout@v2
       - name: Make
         run: qmake ${{github.workspace}}/LCTRL.pro
