@@ -12,18 +12,12 @@ jobs:
       - name: Install Qt
         uses: jurplel/install-qt-action@v3
         with:
-          version: '5.15.2'
           host: 'windows'
           target: 'desktop'
-          arch: 'win64_msvc2019_64'
           install-deps: 'true'
           archives: 'qtbase'
-          cache: 'false'
-          cache-key-prefix: 'install-qt-action'
-          manually-cached: 'false'
           setup-python: 'false'
-          tools: 'tools_ifw tools_qtcreator,qt.tools.qtcreator'
-          set-env: 'false'
-          tools-only: 'false'
           aqtversion: '==2.0.0'
           extra: '--external 7z'
+      - name: Make
+        run: qmake
