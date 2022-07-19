@@ -6,7 +6,7 @@ on:
       - master
 
 jobs:
-  build:
+  build-win:
     runs-on: windows-latest
     steps:
       - name: Install Qt
@@ -31,3 +31,49 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: ${{github.workspace}}\release\LCTRL.exe
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v3
+        with:
+          host: 'linux'
+          target: 'desktop'
+          install-deps: 'true'
+          archives: 'qtbase'
+          setup-python: 'false'
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Make
+        run: |
+          qmake ${{github.workspace}}/LCTRL.pro
+          make
+          ls ${{github.workspace}}/release
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: ${{github.workspace}}/release/LCTRL
+  build-mac:
+    runs-on: macos-latest
+    steps:
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v3
+        with:
+          host: 'mac'
+          target: 'desktop'
+          install-deps: 'true'
+          archives: 'qtbase'
+          setup-python: 'false'
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Make
+        run: |
+          qmake ${{github.workspace}}/LCTRL.pro
+          make
+          ls ${{github.workspace}}/release
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: ${{github.workspace}}/release/LCTRL
