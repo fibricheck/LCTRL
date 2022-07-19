@@ -46,7 +46,7 @@ jobs:
         uses: actions/checkout@v2
       - name: Make
         run: |
-          ls /usr/lib64
+          ls -l /usr/lib/libicu*
           qmake ${{github.workspace}}/LCTRL.pro
           make
           tree ${{github.workspace}}
