@@ -48,7 +48,7 @@ jobs:
         run: |
           qmake ${{github.workspace}}/LCTRL.pro
           make
-          ls ${{github.workspace}}/release
+          tree ${{github.workspace}}
       - name: Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
@@ -71,7 +71,7 @@ jobs:
         run: |
           qmake ${{github.workspace}}/LCTRL.pro
           make
-          ls ${{github.workspace}}/release
+          tree ${{github.workspace}}
       - name: Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
