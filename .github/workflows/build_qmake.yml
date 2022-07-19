@@ -24,5 +24,10 @@ jobs:
           for /f "delims=" %%d in ( 'vswhere.exe -latest -property installationPath' ) do @( call "%%d\VC\Auxiliary\Build\vcvars64.bat" )
           qmake ${{github.workspace}}\LCTRL.pro
           nmake
-          dir /s ${{github.workspace}}\
+          dir /s ${{github.workspace}}\release
         shell: cmd
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: ${{github.workspace}}\release\LCTRL.exe
