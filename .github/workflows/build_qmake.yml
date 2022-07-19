@@ -35,7 +35,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Install libicu
-        run: sudo apt-get install -y libicu libicu-dev
+        run: sudo apt-get install -y libicu-dev
       - name: Install Qt
         uses: jurplel/install-qt-action@v3
         with:
