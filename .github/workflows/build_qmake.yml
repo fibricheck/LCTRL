@@ -46,6 +46,7 @@ jobs:
         uses: actions/checkout@v2
       - name: Make
         run: |
+          export LD_LIBRARY_PATH=$Qt6_DIR/lib:$LD_LIBRARY_PATH
           qmake ${{github.workspace}}/LCTRL.pro
           make
           tree ${{github.workspace}}
@@ -53,7 +54,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          files: ${{github.workspace}}/release/LCTRL
+          files: ${{github.workspace}}/LCTRL
   build-mac:
     runs-on: macos-latest
     steps:
@@ -76,4 +77,4 @@ jobs:
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          files: ${{github.workspace}}/release/LCTRL
+          files: ${{github.workspace}}/LCTRL
