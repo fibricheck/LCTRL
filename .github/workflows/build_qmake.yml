@@ -17,12 +17,10 @@ jobs:
           install-deps: 'true'
           archives: 'qtbase'
           setup-python: 'false'
-          aqtversion: '==2.0.0'
-          extra: '--external 7z'
       - name: Checkout
         uses: actions/checkout@v2
       - name: Make
         run: |
-          vcvarsall.bat
+          for /f "delims=" %%d in ( 'vswhere.exe -latest -property installationPath' ) do @( call "%%d\VC\Auxiliary\Build\vcvars64.bat" )
           qmake ${{github.workspace}}\LCTRL.pro
         shell: cmd
