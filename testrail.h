@@ -11,18 +11,19 @@ public:
 	bool readFile( QString const & fileName );
 
 private:
-	bool needsDirectory( QString const & directory );
-	QStringList readSections( const QString & parentId, QStringList parentNames );
-	QStringList readSection( const QString & parentId, QStringList parentNames );
-	QStringList readCases( QStringList parentNames );
-	QString readCase( QStringList parentNames );
-	QVector<QPair<QString, QString>> readCustom( QString & preconditions );
-	void readAutomationType();
-	QVector<QPair<QString, QString>> readStepsSeperated();
-	QPair<QString, QString> readStep();
-	QString generateId( qsizetype size );
-	QXmlStreamReader xml;
-	QString path;
+    bool needsDirectory( QString const & directory );
+	QStringList readSections( const QString & parentId, QStringList parentNames, const QString & topNonParentName );
+	QStringList readSection( const QString & parentId, QStringList parentNames, const QString & topNonParentName );
+    QStringList readCases( QStringList parentNames );
+    QString readCase( QStringList parentNames );
+    QVector<QPair<QString, QString>> readCustom( QString & preconditions );
+    void readAutomationType();
+    QVector<QPair<QString, QString>> readStepsSeperated();
+    QPair<QString, QString> readStep();
+    QString generateId( qsizetype size );
+	QFile todo;
+    QXmlStreamReader xml;
+    QString path;
 };
 
 #endif // TESTRAIL_H

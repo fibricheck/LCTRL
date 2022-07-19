@@ -24,6 +24,11 @@ bool TestRail::readFile( const QString & fileName )
 	{
 		return false;
 	}
+	todo.setFileName( path + "/Documentation/TODO.log" );
+	if( ! todo.open( QFile::WriteOnly ) )
+	{
+		qDebug() << "Could not create" << todo.fileName();
+	}
 	xml.setDevice( &file );
 	if( xml.readNextStartElement() )
 	{
@@ -48,7 +53,7 @@ bool TestRail::readFile( const QString & fileName )
 		}
 		if( xml.name() == QLatin1String( "sections" ) )
 		{
-			QStringList order = readSections( "", QStringList() );
+			QStringList order = readSections( "", QStringList(), "" );
 			QFile orderJson( path + "/Documentation/requirements/order.json" );
 			if( ! orderJson.open( QFile::WriteOnly ) )
 			{
@@ -71,6 +76,7 @@ bool TestRail::readFile( const QString & fileName )
 	{
 		qDebug() << "Bad XML file (" << file.fileName() << ")" << xml.errorString();
 	}
+	todo.close();
 	file.close();
 	return !xml.error();
 }
@@ -89,7 +95,7 @@ bool TestRail::needsDirectory( const QString & directory )
 	return true;
 }
 
-QStringList TestRail::readSections( const QString & parentId, QStringList parentNames )
+QStringList TestRail::readSections( const QString & parentId, QStringList parentNames, const QString & topNonParentName )
 {
 	Q_ASSERT( xml.isStartElement() && xml.name() == QLatin1String( "sections" ) );
 
@@ -99,7 +105,7 @@ QStringList TestRail::readSections( const QString & parentId, QStringList parent
 	{
 		if( xml.name() == QLatin1String( "section" ) )
 		{
-			order.append( readSection( parentId, parentNames ) );
+			order.append( readSection( parentId, parentNames, topNonParentName ) );
 		}
 		else
 		{
@@ -111,7 +117,7 @@ QStringList TestRail::readSections( const QString & parentId, QStringList parent
 	return order;
 }
 
-QStringList TestRail::readSection( const QString & parentId, QStringList parentNames )
+QStringList TestRail::readSection( const QString & parentId, QStringList parentNames, const QString & topNonParentName )
 {
 	Q_ASSERT( xml.isStartElement() && xml.name() == QLatin1String( "section" ) );
 
@@ -128,7 +134,7 @@ QStringList TestRail::readSection( const QString & parentId, QStringList parentN
 	{
 		if( xml.name() == QLatin1String( "name" ) )
 		{
-			name = xml.readElementText().trimmed().replace( '"', "\\\"" ).replace( '\n', "\\n" ).replace( '\t', "\\t" ).replace( '\\', "\\\\" );
+			name = xml.readElementText().trimmed().replace( '\\', "\\\\" ).replace( '"', "\\\"" ).replace( '\n', "\\n" ).replace( '\t', "\\t" );
 		}
 		else if( xml.name() == QLatin1String( "description" ) )
 		{
@@ -143,7 +149,7 @@ QStringList TestRail::readSection( const QString & parentId, QStringList parentN
 					{
 						id = generateId( 5 );
 					}
-					description = idAndDescription.mid(index+4).trimmed().replace( '"', "\\\"" ).replace( '\n', "\\n" ).replace( '\t', "\\t" ).replace( '\\', "\\\\" );
+					description = idAndDescription.mid(index+4).trimmed().replace( '\\', "\\\\" ).replace( '"', "\\\"" ).replace( '\n', "\\n" ).replace( '\t', "\\t" );
 					type = "user_need";
 //                    origin = "user_need";
 				}
@@ -154,7 +160,7 @@ QStringList TestRail::readSection( const QString & parentId, QStringList parentN
 					{
 						id = generateId( 5 );
 					}
-					description = idAndDescription.mid(index+4).trimmed().trimmed().replace( '"', "\\\"" ).replace( '\n', "\\n" ).replace( '\t', "\\t" ).replace( '\\', "\\\\" );
+					description = idAndDescription.mid(index+4).trimmed().trimmed().replace( '\\', "\\\\" ).replace( '"', "\\\"" ).replace( '\n', "\\n" ).replace( '\t', "\\t" );
 					type = "requirement";
 //                    origin = "user_need";
 				}
@@ -165,7 +171,7 @@ QStringList TestRail::readSection( const QString & parentId, QStringList parentN
 					{
 						id = generateId( 5 );
 					}
-					description = idAndDescription.mid(index+4).trimmed().trimmed().replace( '"', "\\\"" ).replace( '\n', "\\n" ).replace( '\t', "\\t" ).replace( '\\', "\\\\" );
+					description = idAndDescription.mid(index+4).trimmed().trimmed().replace( '\\', "\\\\" ).replace( '"', "\\\"" ).replace( '\n', "\\n" ).replace( '\t', "\\t" );
 					type = "specification";
 //                    origin = "user_need";
 				}
@@ -187,7 +193,7 @@ QStringList TestRail::readSection( const QString & parentId, QStringList parentN
 		}
 		else if( xml.name() == QLatin1String( "sections" ) )
 		{
-			order.append( readSections( id.isEmpty()?parentId:(parentId + id+'.'), parentNames ) );
+			order.append( readSections( id.isEmpty()?parentId:(parentId + id+'.'), parentNames, id.isEmpty()?name:"" ) );
 		}
 		else if( xml.name() == QLatin1String( "cases" ) )
 		{
@@ -203,6 +209,11 @@ QStringList TestRail::readSection( const QString & parentId, QStringList parentN
 	if( ! id.isEmpty() )
 	{
 		QFile json( path + "/Documentation/requirements/" + id + ".json" );
+		if( json.exists() )
+		{
+			qDebug() << "Duplicate id for " << json.fileName();
+			todo.write( QString( "Duplicate requirement id : %1 \n" ).arg( id ).toUtf8() );
+		}
 		if( ! json.open( QFile::WriteOnly ) )
 		{
 			qDebug() << "Could not create" << json.fileName();
@@ -214,17 +225,18 @@ QStringList TestRail::readSection( const QString & parentId, QStringList parentN
 			{
 				testIdsJson = QString( ",\n  \"testIds\": [\n    \"%1\"\n  ]" ).arg( testIds.join("\",\n    \"") );
 			}
-//			else
-//			{
+			else if( type == "specification" )
+			{
+				todo.write( QString( "Specification without test cases : %1 \n" ).arg( id ).toUtf8() );
 //				testIdsJson = ",\n  \"testIds\": []";
-//			}
+			}
 			json.write( QString( "{\n"
 						"  \"id\": \"%1\",\n"
 						"  \"name\": \"%2\",\n"
 						"  \"description\": \"%3\",\n"
 						"  \"type\": \"%4\",\n"
 						"  \"origin\": \"user_need\"%5\n"
-						"}" ).arg( id ).arg( name ).arg( description ).arg( type ).arg( testIdsJson ).toUtf8()
+						"}" ).arg( id ).arg( name.prepend( topNonParentName.isEmpty()?"":("["+topNonParentName+"] ") ) ).arg( description ).arg( type ).arg( testIdsJson ).toUtf8()
 						);
 			json.close();
 			qDebug() << "Created" << json.fileName();
@@ -269,26 +281,38 @@ QString TestRail::readCase( QStringList parentNames )
 
 	QString id;
 	QString name;
+	QString type = "manual";
 	QVector<QPair<QString,QString>> testSteps;
+	QString testRailID;
 	QString preconditions;
 
 	while( xml.readNextStartElement() )
 	{
-		if( xml.name() == QLatin1String( "id" ) ||
-			xml.name() == QLatin1String( "template" ) ||
-			xml.name() == QLatin1String( "type" ) ||
+		if( xml.name() == QLatin1String( "template" ) ||
 			xml.name() == QLatin1String( "priority" ) ||
 			xml.name() == QLatin1String( "estimate" ) )
 		{
 			xml.readElementText();
 		}
+		else if( xml.name() == QLatin1String( "id" ) )
+		{
+			testRailID = xml.readElementText();
+		}
 		else if( xml.name() == QLatin1String( "title" ) )
 		{
-			name = xml.readElementText().trimmed().replace( '"', "\\\"" ).replace( '\n', "\\n" ).replace( '\t', "\\t" ).replace( '\\', "\\\\" );
+			name = xml.readElementText().trimmed().replace( '\\', "\\\\" ).replace( '"', "\\\"" ).replace( '\n', "\\n" ).replace( '\t', "\\t" );
 		}
 		else if( xml.name() == QLatin1String( "references" ) )
 		{
 			id = xml.readElementText().split('.').last();
+		}
+		else if( xml.name() == QLatin1String( "type" ) )
+		{
+			type = xml.readElementText().trimmed();
+			if( type == "Other" )
+			{
+				type = "manual";
+			}
 		}
 		else if( xml.name() == QLatin1String( "custom" ) )
 		{
@@ -309,6 +333,11 @@ QString TestRail::readCase( QStringList parentNames )
 	if( ! name.isEmpty() )
 	{
 		QFile json( path + "/Documentation/testCases/" + id + ".json" );
+		if( json.exists() )
+		{
+			qDebug() << "Duplicate id for " << json.fileName();
+			todo.write( QString( "Duplicate testcase id : %1 \n" ).arg( id ).toUtf8() );
+		}
 		if( ! json.open( QFile::WriteOnly ) )
 		{
 			qDebug() << "Could not create" << json.fileName();
@@ -354,8 +383,15 @@ QString TestRail::readCase( QStringList parentNames )
 						"  \"id\": \"%1\",\n"
 						"  \"name\": \"%2\"%3,\n"
 						"  \"expectedResult\": \"%4\",\n"
-						"  \"type\": \"manual\"%5\n"
-						"}" ).arg( id ).arg( name ).arg( testStepsJson ).arg( expectedResult ).arg( parentNamesJson ).toUtf8()
+						"  \"type\": \"manual\",\n"
+						"  \"tier\": \"%5\",\n"
+						"  \"keyValues\": [\n"
+						"    {\n"
+						"      \"key\": \"testrail-id\",\n"
+						"      \"value\": \"%6\"\n"
+						"    }\n"
+						"  ]%7\n"
+						"}" ).arg( id ).arg( name ).arg( testStepsJson ).arg( expectedResult ).arg( type ).arg( testRailID ).arg( parentNamesJson ).toUtf8()
 						);
 			json.close();
 			qDebug() << "Created" << json.fileName();
@@ -379,7 +415,7 @@ QVector<QPair<QString,QString>> TestRail::readCustom( QString & preconditions )
 		}
 		else if( xml.name() == QLatin1String( "preconds" ) )
 		{
-			preconditions = xml.readElementText().trimmed().replace( '"', "\\\"" ).replace( '\n', "\\n" ).replace( '\t', "\\t" ).replace( '\\', "\\\\" );
+			preconditions = xml.readElementText().trimmed().replace( '\\', "\\\\" ).replace( '"', "\\\"" ).replace( '\n', "\\n" ).replace( '\t', "\\t" );
 		}
 		else if( xml.name() == QLatin1String( "steps_separated" ) )
 		{
@@ -461,11 +497,11 @@ QPair<QString,QString> TestRail::readStep()
 		}
 		else if( xml.name() == QLatin1String( "content" ) )
 		{
-			testStep.first = xml.readElementText().trimmed().replace( '"', "\\\"" ).replace( '\n', "\\n" ).replace( '\t', "\\t" ).replace( '\\', "\\\\" );
+			testStep.first = xml.readElementText().trimmed().replace( '\\', "\\\\" ).replace( '"', "\\\"" ).replace( '\n', "\\n" ).replace( '\t', "\\t" );
 		}
 		else if( xml.name() == QLatin1String( "expected" ) )
 		{
-			testStep.second = xml.readElementText().trimmed().replace( '"', "\\\"" ).replace( '\n', "\\n" ).replace( '\t', "\\t" ).replace( '\\', "\\\\" );
+			testStep.second = xml.readElementText().trimmed().replace( '\\', "\\\\" ).replace( '"', "\\\"" ).replace( '\n', "\\n" ).replace( '\t', "\\t" );
 		}
 		else
 		{
@@ -484,6 +520,11 @@ QString TestRail::generateId( qsizetype size )
 	for( int i = 0 ; i < size ; ++i )
 	{
 		id[i] = symbols[ QRandomGenerator::global()->bounded( symbols.size() ) ];
+	}
+	if( QFile::exists( path + "/Documentation/testCases/" + id + ".json" ) || QFile::exists( path + "/Documentation/requirements/" + id + ".json" ) )
+	{
+		qDebug() << "Regenerate ID" << id << "exists !";
+		return generateId( size );
 	}
 	return id;
 }
