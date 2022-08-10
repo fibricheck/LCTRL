@@ -195,6 +195,7 @@ bool LifeCycleTool::readFile( const QString & path )
                     qDebug() << "Bad JSON file (" << testFile.fileName() << ") as it does not contain the key 'name' or 'description' or 'type'";
                     return false;
                 }
+				QString priority = "Medium";
 				foreach( QJsonValue const & keyValue, test.value( "keyValues" ).toArray() )
 				{
 					QJsonObject const & keyValueObject = keyValue.toObject();
@@ -203,7 +204,10 @@ bool LifeCycleTool::readFile( const QString & path )
 						testRail = &testRailUpdate;
 						testRail->writeStartElement( "case" );
 						testRail->writeTextElement( "id", keyValueObject.value( "value" ).toString() );
-						break;
+					}
+					if( keyValueObject.value( "key" ).toString() == "priority" )
+					{
+						priority = keyValueObject.value( "value" ).toString();
 					}
 				}
 				if( testRail == &testRailAdd )
@@ -220,7 +224,7 @@ bool LifeCycleTool::readFile( const QString & path )
 				{
 					testRail->writeTextElement( "type", "Other" );
 				}
-				testRail->writeTextElement( "priority", "Medium" );
+				testRail->writeTextElement( "priority", priority );
 //                testRail->writeTextElement( "estimate", "" );
 				testRail->writeTextElement( "references", item.toString() + "." + testId.toString() );
 				testRail->writeStartElement( "custom" );
