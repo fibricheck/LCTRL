@@ -59,14 +59,14 @@ bool LifeCycleTool::readFile( const QString & path )
 	testRailUpdate.writeStartElement( "sections" );
 	testRailUpdate.writeStartElement( "section" );
 	testRailUpdate.writeTextElement( "name", "Import" );
-	testRailUpdate.writeTextElement( "description", "Imported by LCTRL v1.0 on " + QDateTime::currentDateTimeUtc().toString() + " from " + path );
+	testRailUpdate.writeTextElement( "description", "" );
 	QXmlStreamWriter testRailAdd( &testRailFileAdd );
 	testRailAdd.setAutoFormatting( true );
 	testRailAdd.writeStartDocument();
 	testRailAdd.writeStartElement( "sections" );
 	testRailAdd.writeStartElement( "section" );
 	testRailAdd.writeTextElement( "name", "Import" );
-	testRailAdd.writeTextElement( "description", "Imported by LCTRL v1.0 on " + QDateTime::currentDateTimeUtc().toString() + " from " + path );
+	testRailAdd.writeTextElement( "description", "" );
 	int level = 0;
 	QStringList groups;
     foreach( QJsonValue const & item, requirementsOrder.toArray() )

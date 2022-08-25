@@ -197,7 +197,7 @@ QStringList TestRail::readSection( const QString & parentId, QStringList parentN
 		}
 		else if( xml.name() == QLatin1String( "cases" ) )
 		{
-			testIds = readCases( parentNames );
+			testIds = readCases( parentNames, id.isEmpty()?parentId:(parentId + id+'.') );
 		}
 		else
 		{
@@ -227,7 +227,7 @@ QStringList TestRail::readSection( const QString & parentId, QStringList parentN
 			}
 			else if( type == "specification" )
 			{
-				todo.write( QString( "Specification without test cases : %1 \n" ).arg( id ).toUtf8() );
+				todo.write( QString( "Specification without test cases : %1 == %2 \n" ).arg( id.isEmpty()?parentId:(parentId + id) ).arg( parentNames.join( " > " ) ).toUtf8() );
 //				testIdsJson = ",\n  \"testIds\": []";
 			}
 			json.write( QString( "{\n"
@@ -246,7 +246,7 @@ QStringList TestRail::readSection( const QString & parentId, QStringList parentN
 	return order;
 }
 
-QStringList TestRail::readCases( QStringList parentNames )
+QStringList TestRail::readCases( QStringList parentNames, const QString & order )
 {
 	Q_ASSERT( xml.isStartElement() && xml.name() == QLatin1String( "cases" ) );
 
@@ -256,7 +256,7 @@ QStringList TestRail::readCases( QStringList parentNames )
 	{
 		if( xml.name() == QLatin1String( "case" ) )
 		{
-			QString id = readCase( parentNames );
+			QString id = readCase( parentNames, order );
 			if( ! id.isEmpty() )
 			{
 				testIds.append( id );
@@ -275,7 +275,7 @@ QStringList TestRail::readCases( QStringList parentNames )
 	return testIds;
 }
 
-QString TestRail::readCase( QStringList parentNames )
+QString TestRail::readCase( QStringList parentNames, const QString & order )
 {
 	Q_ASSERT( xml.isStartElement() && xml.name() == QLatin1String( "case" ) );
 
@@ -304,7 +304,13 @@ QString TestRail::readCase( QStringList parentNames )
 		}
 		else if( xml.name() == QLatin1String( "references" ) )
 		{
-			id = xml.readElementText().split('.').last();
+			QString references = xml.readElementText();
+			id = references.split('.').last();
+			if( ! references.startsWith( order ) )
+			{
+				qDebug() << "Case in wrong section : " << order + id << " should be " << references;
+				todo.write( QString( "Case in wrong section %1 : %2 should be %3 \n" ).arg( parentNames.join( " > " ) ).arg( order + id ).arg( references ).toUtf8() );
+			}
 		}
 		else if( xml.name() == QLatin1String( "type" ) )
 		{

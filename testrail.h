@@ -14,8 +14,8 @@ private:
     bool needsDirectory( QString const & directory );
 	QStringList readSections( const QString & parentId, QStringList parentNames, const QString & topNonParentName );
 	QStringList readSection( const QString & parentId, QStringList parentNames, const QString & topNonParentName );
-    QStringList readCases( QStringList parentNames );
-    QString readCase( QStringList parentNames );
+	QStringList readCases( QStringList parentNames, const QString & order );
+	QString readCase( QStringList parentNames, const QString & order );
     QVector<QPair<QString, QString>> readCustom( QString & preconditions );
     void readAutomationType();
     QVector<QPair<QString, QString>> readStepsSeperated();
