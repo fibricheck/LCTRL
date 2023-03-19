@@ -58,11 +58,8 @@ jobs:
           qmake ${{github.workspace}}/LCTRL.pro
           make
           cd ${{github.workspace}}
-          mkdir deploy
-          cd LCTRL.app
-          ls -a -l -R
-          macdeployqt LCTRL -dmg
-          ls -a -l -R
+          macdeployqt LCTRL.app -dmg
+          ls -a -l
       - name: Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
