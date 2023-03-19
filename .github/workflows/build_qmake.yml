@@ -23,7 +23,7 @@ jobs:
       - name: Make
         run: |
           for /f "delims=" %%d in ( 'vswhere.exe -latest -property installationPath' ) do @( call "%%d\VC\Auxiliary\Build\vcvars64.bat" )
-          qtenv2.bat
+          call qtenv2.bat
           qmake ${{github.workspace}}\LCTRL.pro -config release
           nmake
           dir /s
