@@ -59,7 +59,7 @@ jobs:
           make
           cd ${{github.workspace}}
           mkdir deploy
-          cp LCTRL.app
+          cd LCTRL.app
           ls -a -l -R
           macdeployqt LCTRL -dmg
           ls -a -l -R
