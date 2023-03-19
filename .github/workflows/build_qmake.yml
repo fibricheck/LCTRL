@@ -17,20 +17,23 @@ jobs:
           target: 'desktop'
           install-deps: 'true'
           archives: 'qtbase'
+          dir: ${{github.workspace}}\QT\
           setup-python: 'false'
       - name: Checkout
         uses: actions/checkout@v2
       - name: Make
         run: |
           for /f "delims=" %%d in ( 'vswhere.exe -latest -property installationPath' ) do @( call "%%d\VC\Auxiliary\Build\vcvars64.bat" )
-          qmake ${{github.workspace}}\LCTRL.pro
+          ${{github.workspace}}\QT\bin\qtenv2.bat
+          qmake ${{github.workspace}}\LCTRL.pro -config release
           nmake
-          cd ${{github.workspace}}\release
           dir /s
+          cd ${{github.workspace}}\release
           mkdir LCTRL
           copy LCTRL.exe LCTRL\LCTRL.exe
           cd LCTRL
-          windeployqt --qmldir ${{github.workspace}} LCTRL.exe --pdb --release --compiler-runtime
+          windeployqt --qmldir ${{github.workspace}} --release --compiler-runtime LCTRL.exe
+          dir /s
           7z a LCTRL.zip * -r
         shell: cmd
       - name: Release
