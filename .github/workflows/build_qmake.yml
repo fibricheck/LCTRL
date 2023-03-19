@@ -25,18 +25,24 @@ jobs:
           for /f "delims=" %%d in ( 'vswhere.exe -latest -property installationPath' ) do @( call "%%d\VC\Auxiliary\Build\vcvars64.bat" )
           qmake ${{github.workspace}}\LCTRL.pro
           nmake
-          dir /s ${{github.workspace}}\release
+          cd ${{github.workspace}}\release
+          dir /s
+          mkdir LCTRL
+          copy LCTRL.exe LCTRL\LCTRL.exe
+          cd LCTRL
+          windeployqt --qmldir ${{github.workspace}} LCTRL.exe --pdb --release --compiler-runtime
+          7z a LCTRL.zip * -r
         shell: cmd
       - name: Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          files: ${{github.workspace}}\release\LCTRL.exe
+          files: ${{github.workspace}}\release\LCTRL\LCTRL.zip
       - name: Upload
         uses: actions/upload-artifact@v3
         with:
-          name: LCTRL.exe
-          path: ${{github.workspace}}\release\LCTRL.exe
+          name: LCTRL.zip
+          path: ${{github.workspace}}\release\LCTRL\LCTRL.zip
   build-mac:
     runs-on: macos-latest
     steps:
