@@ -16,7 +16,6 @@ jobs:
           host: 'windows'
           target: 'desktop'
           install-deps: 'true'
-          archives: 'qtbase'
           setup-python: 'false'
       - name: Checkout
         uses: actions/checkout@v2
@@ -30,7 +29,7 @@ jobs:
           echo ----> call vsvarsall.bat
           for /f "delims=" %%d in ( 'vswhere.exe -latest -property installationPath' ) do @( call "%%d\VC\Auxiliary\Build\vcvars64.bat" )
           echo ----> qmake & nmake
-          qmake ${{github.workspace}}\LCTRL.pro -config release
+          qmake ${{github.workspace}}\LCTRL.pro
           nmake
           dir
           cd ${{github.workspace}}\release
