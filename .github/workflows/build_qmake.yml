@@ -59,17 +59,16 @@ jobs:
           make
           cd ${{github.workspace}}
           macdeployqt LCTRL.app -dmg
-          ls -a -l
       - name: Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          files: ${{github.workspace}}/LCTRL
+          files: ${{github.workspace}}/LCTRL.dmg
       - name: Upload
         uses: actions/upload-artifact@v3
         with:
-          name: LCTRL
-          path: ${{github.workspace}}/LCTRL
+          name: LCTRL.dmg
+          path: ${{github.workspace}}/LCTRL.dmg
 #   build-linux:
 #     runs-on: ubuntu-latest
 #     steps:
