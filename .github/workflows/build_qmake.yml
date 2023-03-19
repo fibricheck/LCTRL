@@ -21,24 +21,15 @@ jobs:
         uses: actions/checkout@v2
       - name: Make
         run: |
-          echo ----> call qtenv2.bat
-          call qtenv2.bat
-          set
-          dir \*windeployqt* /s
-          windeployqt 
-          echo ----> call vsvarsall.bat
           for /f "delims=" %%d in ( 'vswhere.exe -latest -property installationPath' ) do @( call "%%d\VC\Auxiliary\Build\vcvars64.bat" )
-          echo ----> qmake & nmake
           qmake ${{github.workspace}}\LCTRL.pro
           nmake
           dir
           cd ${{github.workspace}}\release
-          dir
           mkdir deploy
           copy LCTRL.exe deploy\LCTRL.exe
           cd deploy
           windeployqt --qmldir ${{github.workspace}} --release --compiler-runtime LCTRL.exe
-          dir /s
           7z a LCTRL.zip * -r
         shell: cmd
       - name: Release
@@ -68,6 +59,10 @@ jobs:
         run: |
           qmake ${{github.workspace}}/LCTRL.pro
           make
+          ls -R ${{github.workspace}}
+          mkdir deploy
+          copy LCTRL deploy/LCTRL
+          macdeployqt ${{github.workspace}}/LCTRL -dmg
           ls -R ${{github.workspace}}
       - name: Release
         uses: softprops/action-gh-release@v1
