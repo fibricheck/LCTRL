@@ -24,6 +24,8 @@ jobs:
         run: |
           echo ----> call qtenv2.bat
           call qtenv2.bat
+          set
+          dir \*windeployqt* /s
           windeployqt 
           echo ----> call vsvarsall.bat
           for /f "delims=" %%d in ( 'vswhere.exe -latest -property installationPath' ) do @( call "%%d\VC\Auxiliary\Build\vcvars64.bat" )
