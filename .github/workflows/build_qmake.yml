@@ -17,14 +17,13 @@ jobs:
           target: 'desktop'
           install-deps: 'true'
           archives: 'qtbase'
-          dir: ${{github.workspace}}\QT\
           setup-python: 'false'
       - name: Checkout
         uses: actions/checkout@v2
       - name: Make
         run: |
           for /f "delims=" %%d in ( 'vswhere.exe -latest -property installationPath' ) do @( call "%%d\VC\Auxiliary\Build\vcvars64.bat" )
-          ${{github.workspace}}\QT\bin\qtenv2.bat
+          qtenv2.bat
           qmake ${{github.workspace}}\LCTRL.pro -config release
           nmake
           dir /s
