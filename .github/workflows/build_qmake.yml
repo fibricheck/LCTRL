@@ -58,6 +58,9 @@ jobs:
           qmake ${{github.workspace}}/LCTRL.pro
           make
           cd ${{github.workspace}}
+          mkdir deploy
+          cp LCTRL deploy/LCTRL
+          cd deploy
           ls -a -l -R
           macdeployqt LCTRL -dmg
           ls -a -l -R
