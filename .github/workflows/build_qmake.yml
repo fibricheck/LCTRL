@@ -28,7 +28,7 @@ jobs:
           mkdir deploy
           copy LCTRL.exe deploy\LCTRL.exe
           cd deploy
-          windeployqt --qmldir ${{github.workspace}} --release --compiler-runtime LCTRL.exe
+          windeployqt --qmldir ${{github.workspace}} --no-translations --release --compiler-runtime LCTRL.exe
           7z a LCTRL.zip * -r
         shell: cmd
       - name: Release
@@ -57,9 +57,10 @@ jobs:
         run: |
           qmake ${{github.workspace}}/LCTRL.pro
           make
-          ls -R ${{github.workspace}}
-          macdeployqt ${{github.workspace}}/LCTRL -dmg
-          ls -R ${{github.workspace}}
+          cd ${{github.workspace}}
+          ls -a -l -R
+          macdeployqt LCTRL -dmg
+          ls -a -l -R
       - name: Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
