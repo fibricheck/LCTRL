@@ -16,38 +16,38 @@ bool LifeCycleTool::readFile( const QString & path )
     QFile order( path + "/requirements/order.json" );
     if( ! order.open(QFile::ReadOnly) )
     {
-        qDebug() << "Could not open" << order.fileName();
+		qCritical() << "Could not open" << order.fileName();
         return false;
     }
     QJsonDocument const & requirementDocument = QJsonDocument::fromJson( order.readAll() );
     order.close();
     if( ! requirementDocument.isObject() )
     {
-        qDebug() << "Bad JSON file (" << order.fileName() << ") as it does not contain a JSON object";
+		qCritical() << "Bad JSON file (" << order.fileName() << ") as it does not contain a JSON object";
         return false;
     }
     QJsonObject const & requirements = requirementDocument.object();
     if( ! requirements.contains( "order" ) )
     {
-        qDebug() << "Bad JSON file (" << order.fileName() << ") as it does not contain the key 'order'";
+		qCritical() << "Bad JSON file (" << order.fileName() << ") as it does not contain the key 'order'";
         return false;
     }
     QJsonValue const & requirementsOrder = requirements.value( "order" );
     if( ! requirementsOrder.isArray() )
     {
-        qDebug() << "Bad JSON file (" << order.fileName() << ") as 'order' is not an array";
+		qCritical() << "Bad JSON file (" << order.fileName() << ") as 'order' is not an array";
         return false;
     }
 	QFile testRailFileUpdate( path + "/testrail_update.xml" );
 	QFile testRailFileAdd( path + "/testrail_add.xml" );
 	if( ! testRailFileUpdate.open(QFile::WriteOnly) )
 	{
-		qDebug() << "Could not create" << testRailFileUpdate.fileName();
+		qCritical() << "Could not create" << testRailFileUpdate.fileName();
 		return false;
 	}
 	if( ! testRailFileAdd.open(QFile::WriteOnly) )
 	{
-		qDebug() << "Could not create" << testRailFileAdd.fileName();
+		qCritical() << "Could not create" << testRailFileAdd.fileName();
 		return false;
 	}
 	QXmlStreamWriter testRailUpdate( &testRailFileUpdate );
@@ -75,20 +75,20 @@ bool LifeCycleTool::readFile( const QString & path )
         QFile file( path + "/requirements/" + parts.last() + ".json" );
         if( ! file.open(QFile::ReadOnly) )
         {
-            qDebug() << "Could not open" << file.fileName();
+			qCritical() << "Could not open" << file.fileName();
             return false;
         }
         QJsonDocument const & document = QJsonDocument::fromJson( file.readAll() );
         file.close();
         if( ! document.isObject() )
         {
-            qDebug() << "Bad JSON file (" << file.fileName() << ") as it does not contain a JSON object";
+			qCritical() << "Bad JSON file (" << file.fileName() << ") as it does not contain a JSON object";
             return false;
         }
         QJsonObject const & object = document.object();
         if( ! object.contains( "name" ) || ! object.contains( "description" ) || ! object.contains( "type" ) )
         {
-            qDebug() << "Bad JSON file (" << file.fileName() << ") as it does not contain the key 'name' or 'description' or 'type'";
+			qCritical() << "Bad JSON file (" << file.fileName() << ") as it does not contain the key 'name' or 'description' or 'type'";
             return false;
         }
         QJsonValue const & name = object.value( "name" );
@@ -96,11 +96,10 @@ bool LifeCycleTool::readFile( const QString & path )
         QJsonValue const & type = object.value( "type" );
         if( ! name.isString() || ! type.isString() )
         {
-            qDebug() << "Bad JSON file (" << file.fileName() << ") as 'name' or 'type' is not a string";
+			qCritical() << "Bad JSON file (" << file.fileName() << ") as 'name' or 'type' is not a string";
             return false;
         }
         QString const id = (type=="user_need"?"USN-":type=="requirement"?"REQ-":type=="specification"?"SPC-":"???-") + parts.last();
-        qDebug() << ( parts.size() == 1 ? "" : parts.size() == 2 ? "\t" : "\t\t" ) << id;//name.toString();
 		QString groupOnly;
 		QString nameOnly;
 		if( name.toString().startsWith( '[' ) && name.toString().contains( ']' ) )
@@ -113,7 +112,8 @@ bool LifeCycleTool::readFile( const QString & path )
 		{
 			nameOnly = name.toString();
 		}
-        if( parts.size() <= level )
+		qInfo() << ( parts.size() == 1 ? "" : parts.size() == 2 ? "\t" : "\t\t" ) << id << ( parts.size() == 1 ? "\t\t\t" : parts.size() == 2 ? "\t\t" : "\t" ) << groupOnly << ( groupOnly.size()<4?"\t\t\t":groupOnly.size()<12?"\t\t":"\t") << nameOnly;//name.toString();
+		if( parts.size() <= level )
         {
 			testRailUpdate.writeEndElement(); //section
 			testRailAdd.writeEndElement(); //section
@@ -148,6 +148,13 @@ bool LifeCycleTool::readFile( const QString & path )
 				testRailUpdate.writeEndElement(); //section
 				testRailAdd.writeEndElement(); //sections
 				testRailAdd.writeEndElement(); //section
+				if( groupOnly.isEmpty() )
+				{
+					qWarning() << "-------------------------------- IS THIS NORMAL ? --------------------------------";
+					qWarning() << "Previous group was" << groups.last() << "and now we go into an empty group for" << id << "?";
+					qWarning() << "-------------------------------- IS THIS NORMAL ? --------------------------------";
+				}
+				groups.removeLast();
 			}
 			if( ! groupOnly.isEmpty() )
 			{
@@ -159,7 +166,6 @@ bool LifeCycleTool::readFile( const QString & path )
 				testRailAdd.writeTextElement( "name", groupOnly );
 				testRailAdd.writeTextElement( "description", "" );
 				testRailAdd.writeStartElement( "sections" );
-				groups.removeLast();
 				groups.push_back( groupOnly );
 			}
 		}
@@ -179,20 +185,20 @@ bool LifeCycleTool::readFile( const QString & path )
 				QFile testFile( path + "/testCases/" + testId.toString() + ".json" );
                 if( ! testFile.open(QFile::ReadOnly) )
                 {
-                    qDebug() << "Could not open" << testFile.fileName();
-                    return false;
+					qCritical() << "Could not open" << testFile.fileName();
+					return false;
                 }
                 QJsonDocument const & testDocument = QJsonDocument::fromJson( testFile.readAll() );
                 testFile.close();
                 if( ! testDocument.isObject() )
                 {
-                    qDebug() << "Bad JSON file (" << testFile.fileName() << ") as it does not contain a JSON object";
+					qCritical() << "Bad JSON file (" << testFile.fileName() << ") as it does not contain a JSON object";
                     return false;
                 }
                 QJsonObject const & test = testDocument.object();
                 if( ! test.contains( "name" ) || ! test.contains( "testSteps" ) || ! test.contains( "expectedResult" ) || ! test.contains( "type" ) )
                 {
-                    qDebug() << "Bad JSON file (" << testFile.fileName() << ") as it does not contain the key 'name' or 'description' or 'type'";
+					qCritical() << "Bad JSON file (" << testFile.fileName() << ") as it does not contain the key 'name' or 'description' or 'type'";
                     return false;
                 }
 				QString priority = "Medium";
@@ -204,6 +210,7 @@ bool LifeCycleTool::readFile( const QString & path )
 						testRail = &testRailUpdate;
 						testRail->writeStartElement( "case" );
 						testRail->writeTextElement( "id", keyValueObject.value( "value" ).toString() );
+						qInfo() << "\t\t\t\t\t\t\t test" << testId.toString() << "=>" << keyValueObject.value( "value" ).toString();
 					}
 					if( keyValueObject.value( "key" ).toString() == "priority" )
 					{
@@ -213,6 +220,7 @@ bool LifeCycleTool::readFile( const QString & path )
 				if( testRail == &testRailAdd )
 				{
 					testRail->writeStartElement( "case" );
+					qInfo() << "\t\t\t\t\t\t\t test" << testId.toString() << "=> NEW !";
 				}
 				testRail->writeTextElement( "title", test.value( "name" ).toString() );
 				testRail->writeTextElement( "template", "Test Case (Steps)" );
@@ -236,7 +244,7 @@ bool LifeCycleTool::readFile( const QString & path )
 				}
                 else
                 {
-                    qDebug() << "---------------> Automated? : " << test.value( "type" ).toString();
+					qInfo() << "---------------> Automated? : " << test.value( "type" ).toString();
 					testRail->writeTextElement( "id", "1" );
 					testRail->writeTextElement( "value", " LifeCycleTool" );
                 }
